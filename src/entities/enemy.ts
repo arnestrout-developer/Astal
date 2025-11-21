@@ -8,6 +8,7 @@ export class Enemy extends Container {
   private timeAlive: number = 0;
   private startX: number;
   private screenHeight: number;
+  hp: number;
 
   constructor(x: number, y: number, screenHeight: number, color: number = 0xff0000, movementType: 'straight' | 'sine' = 'straight') {
     super();
@@ -15,11 +16,13 @@ export class Enemy extends Container {
     this.movementType = movementType;
     this.startX = x;
     this.screenHeight = screenHeight;
+    this.hp = 3;
 
     // Create a simple box graphic
     this.graphics = new Graphics();
-    this.graphics.rect(-32, -32, 64, 64); // 64x64 box centered at origin
-    this.graphics.fill(color);
+    this.graphics.beginFill(color);
+    this.graphics.drawRect(-32, -32, 64, 64); // 64x64 box centered at origin
+    this.graphics.endFill();
     
     this.position.set(x, y);
     this.addChild(this.graphics);
@@ -41,6 +44,12 @@ export class Enemy extends Container {
     if (this.y > this.screenHeight + 64) {
       return true; // Signal that this enemy should be removed
     }
+    // If HP depleted, signal removal
+    if (this.hp <= 0) return true;
     return false; // Enemy is still active
+  }
+
+  takeDamage(amount: number) {
+    this.hp -= amount;
   }
 }
