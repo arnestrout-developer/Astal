@@ -50,7 +50,7 @@ if (appDiv) {
 
 // Load the hero sprite and add to stage
 async function setup() {
-  const texture = await Assets.load('/art/thunder.jpg');
+  const texture = await Assets.load('./art/thunder.jpg');
   const hero = new Hero(texture);
   const stats = new Stats();
   const lives = new Lives(texture, 5);
