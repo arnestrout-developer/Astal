@@ -73,13 +73,13 @@ async function setup() {
     if (spawnTimer >= spawnInterval) {
       spawnTimer = 0;
       // Random x position across the screen
-      const x = Math.random() * 1920;
+      const x = Math.random() * DEFAULT_WIDTH;
       // Random color (red, green, blue, yellow, magenta, cyan)
       const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff];
       const color = colors[Math.floor(Math.random() * colors.length)];
       // Random movement type
       const movementType = Math.random() > 0.5 ? 'straight' : 'sine';
-      const enemy = new Enemy(x, -64, color, movementType);
+      const enemy = new Enemy(x, -64, DEFAULT_HEIGHT, color, movementType);
       enemies.push(enemy);
       app.stage.addChild(enemy);
     }

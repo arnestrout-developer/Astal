@@ -7,12 +7,14 @@ export class Enemy extends Container {
   movementType: 'straight' | 'sine';
   private timeAlive: number = 0;
   private startX: number;
+  private screenHeight: number;
 
-  constructor(x: number, y: number, color: number = 0xff0000, movementType: 'straight' | 'sine' = 'straight') {
+  constructor(x: number, y: number, screenHeight: number, color: number = 0xff0000, movementType: 'straight' | 'sine' = 'straight') {
     super();
     this.speed = 2;
     this.movementType = movementType;
     this.startX = x;
+    this.screenHeight = screenHeight;
 
     // Create a simple box graphic
     this.graphics = new Graphics();
@@ -36,7 +38,7 @@ export class Enemy extends Container {
     }
 
     // Check if enemy is off screen (below)
-    if (this.y > 1080 + 64) {
+    if (this.y > this.screenHeight + 64) {
       return true; // Signal that this enemy should be removed
     }
     return false; // Enemy is still active
