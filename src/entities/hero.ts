@@ -5,10 +5,16 @@ import { controlState } from '../logic/controls';
 export class Hero extends Container {
   sprite: Sprite;
   private invincibleSeconds = 0; // seconds remaining of invincibility
+  private upTexture: Texture;
+  private leftTexture: Texture;
+  private rightTexture: Texture;
 
-  constructor(texture: Texture) {
+  constructor(up: Texture, left: Texture, right: Texture) {
     super();
-    this.sprite = new Sprite(texture);
+    this.upTexture = up;
+    this.leftTexture = left;
+    this.rightTexture = right;
+    this.sprite = new Sprite(this.upTexture);
     this.sprite.anchor.set(0.5);
     // Scale sprite to 128px width, maintaining aspect ratio
     const targetWidth = 128;
@@ -37,6 +43,30 @@ export class Hero extends Container {
 
     this.sprite.x += dx;
     this.sprite.y += dy;
+
+    // Update sprite based on horizontal movement: left/right/up
+    if (dx < 0) {
+      if (this.sprite.texture !== this.leftTexture) {
+        this.sprite.texture = this.leftTexture;
+        const targetWidth = 128;
+        const scale = targetWidth / this.sprite.texture.width;
+        this.sprite.scale.set(scale);
+      }
+    } else if (dx > 0) {
+      if (this.sprite.texture !== this.rightTexture) {
+        this.sprite.texture = this.rightTexture;
+        const targetWidth = 128;
+        const scale = targetWidth / this.sprite.texture.width;
+        this.sprite.scale.set(scale);
+      }
+    } else {
+      if (this.sprite.texture !== this.upTexture) {
+        this.sprite.texture = this.upTexture;
+        const targetWidth = 128;
+        const scale = targetWidth / this.sprite.texture.width;
+        this.sprite.scale.set(scale);
+      }
+    }
 
     // Clamp to 1920x1080 bounds
     const halfW = (this.sprite.width) / 2;

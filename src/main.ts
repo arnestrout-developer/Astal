@@ -1,13 +1,15 @@
 
 
 import './style.css';
-import { Application, Assets } from 'pixi.js';
+import { Application, Texture } from 'pixi.js';
 import { Hero } from './entities/hero';
 import { Stats } from './entities/stats';
 import { Lives } from './entities/lives';
 import { Enemy } from './entities/enemy';
 import { Bullet } from './entities/bullet';
+import Explosion from './entities/explosion';
 import { controlState, pollGamepads } from './logic/controls';
+import { loadTextures, textures } from './assets/textures';
 
 
 
@@ -50,10 +52,12 @@ if (appDiv) {
 
 // Load the hero sprite and add to stage
 async function setup() {
-  const texture = await Assets.load('./art/thunder.jpg');
-  const hero = new Hero(texture);
+  // Load hero directional textures and the lives/thumb texture via textures module
+  await loadTextures();
+
+  const hero = new Hero(textures.up as Texture, textures.left as Texture, textures.right as Texture);
   const stats = new Stats();
-  const lives = new Lives(texture, 5);
+  const lives = new Lives(textures.thumb as Texture, 5);
   app.stage.addChild(hero);
   app.stage.addChild(stats);
   app.stage.addChild(lives);
@@ -122,6 +126,8 @@ async function setup() {
   const spawnInterval = 120; // Spawn enemy every 2 seconds at 60fps
   // Bullet management
   const bullets: Bullet[] = [];
+  // Explosion management
+  const explosions: Explosion[] = [];
   let fireCooldown = 0; // seconds
   const fireRate = 15; // bullets per second while held
   const fireInterval = 1 / fireRate;
@@ -184,10 +190,13 @@ async function setup() {
       while (fireCooldown <= 0) {
         // spawn a bullet at hero position
         const bx = hero.sprite.x;
-        const by = hero.sprite.y - hero.sprite.height / 2 - 8;
-        const b = new Bullet(bx, by, 900, 1);
-        bullets.push(b);
-        app.stage.addChild(b);
+        const by = hero.sprite.y - hero.sprite.height / 3 - 8;
+        const ba = new Bullet(bx-5, by, 900, 1);
+        const bb = new Bullet(bx+5, by, 900, 1);
+        bullets.push(ba);
+        app.stage.addChild(ba);
+        bullets.push(bb);
+        app.stage.addChild(bb);
         fireCooldown += fireInterval;
       }
     } else {
@@ -214,17 +223,49 @@ async function setup() {
           bBounds.y < eBounds.y + eBounds.height &&
           bBounds.y + bBounds.height > eBounds.y;
         if (hit) {
-          // apply damage and remove bullet
+          // apply damage
           enemy.takeDamage(bullet.damage);
+          // apply an upward knockback to the enemy's vertical velocity
+          try {
+            (enemy as any).vy = -18; // units consistent with enemy.vy (pixels per tick unit)
+          } catch (e) {
+            // ignore if enemy doesn't expose vy for some reason
+          }
+
+          // spawn a small explosion at the bullet location
+          const bx = bullet.x ?? (bBounds.x + bBounds.width / 2);
+          const by = bullet.y ?? (bBounds.y + bBounds.height / 2);
+          const smallExpl = new Explosion(16, 0.25);
+          smallExpl.position.set(bx, by);
+          explosions.push(smallExpl);
+          app.stage.addChild(smallExpl);
+
+          // remove the bullet
           app.stage.removeChild(bullet);
           bullets.splice(bi, 1);
-          // remove enemy if HP depleted
+
+          // if enemy died from this hit, spawn a larger explosion at enemy location
           if (enemy.hp <= 0) {
+            const ex = new Explosion(64, 0.6);
+            ex.position.set(enemy.x, enemy.y);
+            explosions.push(ex);
+            app.stage.addChild(ex);
+
             app.stage.removeChild(enemy);
             enemies.splice(ei, 1);
           }
           break;
         }
+      }
+    }
+
+    // Update explosions and remove finished ones
+    for (let xi = explosions.length - 1; xi >= 0; xi--) {
+      const expl = explosions[xi];
+      const done = expl.update(ticker.deltaTime);
+      if (done) {
+        app.stage.removeChild(expl);
+        explosions.splice(xi, 1);
       }
     }
 
