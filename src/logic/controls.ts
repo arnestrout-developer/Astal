@@ -98,3 +98,85 @@ export function pollGamepads() {
 }
 
 setInterval(pollGamepads, 16); // ~60Hz
+
+// Pointer (mouse / touch) support
+let activePointerId: number | null = null;
+let pointerActive = false;
+
+function updatePointerControls(clientX: number, clientY: number) {
+  // Map pointer position relative to window center to analog values -1..1
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  // Normalize by the smaller half-dimension so input is symmetric
+  const half = Math.min(cx, cy);
+  let nx = (clientX - cx) / half;
+  let ny = (clientY - cy) / half;
+  // Clamp
+  nx = Math.max(-1, Math.min(1, nx));
+  ny = Math.max(-1, Math.min(1, ny));
+
+  // Apply radial deadzone
+  const mag = Math.sqrt(nx * nx + ny * ny);
+  if (mag < DEADZONE) {
+    controlState.analogX = 0;
+    controlState.analogY = 0;
+  } else {
+    // Keep magnitude but clamp to 1
+    const inv = 1 / Math.max(1, mag);
+    controlState.analogX = nx * inv * Math.min(mag, 1);
+    controlState.analogY = ny * inv * Math.min(mag, 1);
+  }
+
+  // Update digital booleans based on thresholds
+  controlState.left = controlState.analogX < -0.4;
+  controlState.right = controlState.analogX > 0.4;
+  controlState.up = controlState.analogY < -0.4;
+  controlState.down = controlState.analogY > 0.4;
+}
+
+window.addEventListener('pointerdown', (e) => {
+  // capture primary pointer for movement and firing
+  if (activePointerId === null) {
+    activePointerId = e.pointerId;
+    pointerActive = true;
+    updatePointerControls(e.clientX, e.clientY);
+    // treat pointer hold as firing
+    controlState.fire = true;
+    // capture to receive move/up even if pointer leaves element
+    (e.target as Element | null)?.setPointerCapture?.(e.pointerId);
+  }
+});
+
+window.addEventListener('pointermove', (e) => {
+  if (!pointerActive) return;
+  if (e.pointerId !== activePointerId) return;
+  updatePointerControls(e.clientX, e.clientY);
+});
+
+window.addEventListener('pointerup', (e) => {
+  if (e.pointerId !== activePointerId) return;
+  // reset controls
+  pointerActive = false;
+  activePointerId = null;
+  controlState.fire = false;
+  controlState.analogX = 0;
+  controlState.analogY = 0;
+  controlState.left = false;
+  controlState.right = false;
+  controlState.up = false;
+  controlState.down = false;
+  (e.target as Element | null)?.releasePointerCapture?.(e.pointerId);
+});
+
+window.addEventListener('pointercancel', (e) => {
+  if (e.pointerId !== activePointerId) return;
+  pointerActive = false;
+  activePointerId = null;
+  controlState.fire = false;
+  controlState.analogX = 0;
+  controlState.analogY = 0;
+  controlState.left = false;
+  controlState.right = false;
+  controlState.up = false;
+  controlState.down = false;
+});
